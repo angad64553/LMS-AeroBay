@@ -6,12 +6,12 @@ function local_aerobay_dashboard_before_footer() {
 
     if (isloggedin() && !isguestuser()) {
 
-        // 🔥 ADMIN + teacher1 BLOCK
-        if (is_siteadmin() || $USER->username === 'teacher1') {
-            return;
-        }
+        // Admin + Teacher block
+if (is_siteadmin() || user_has_role_assignment($USER->id, 3)) {
+    return;
+}
 
-        // ✅ Sirf ek baar popup
+        //  Sirf ek baar popup
         if (!empty($SESSION->popup_shown)) {
             return;
         }
@@ -33,9 +33,9 @@ function local_aerobay_dashboard_before_footer() {
             popup.innerHTML =
                 "<div style=\"position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; z-index: 9999; width: 320px;\">" +
 
-                "<h2>Welcome, " + name + " 👋</h2>" +
+                "<h2>Welcome, " + name + " </h2>" +
 
-                "<p>You are enrolled in <b>" + count + "</b> courses 📚</p>" +
+                "<p>You are enrolled in <b>" + count + "</b> courses </p>" +
 
                 "<button onclick=\"this.parentElement.remove()\" style=\"padding:10px 20px; border:none; background:#007bff; color:white; border-radius:8px;\">Continue</button>" +
 
