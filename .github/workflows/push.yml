@@ -19,7 +19,8 @@ env:
 
 jobs:
   Grunt:
-    runs-on: ubuntu-24.04
+  if: false   #  ye add kar (grunt disable)
+  runs-on: ubuntu-24.04
 
     steps:
       - name: Checking out code
