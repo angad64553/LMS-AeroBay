@@ -10,18 +10,20 @@ echo $OUTPUT->header();
 
 global $DB, $USER;
 
-// 🔥 FINAL ROLE LOGIC (CLEAN + WORKING)
+// ROLE LOGIC
 $isadmin = is_siteadmin();
 $isteacher = false;
 $isstudent = true;
 
-// ✅ TEACHER CHECK (USERNAME BASED - BEST)
-if ($USER->username === 'teacher1') {
+// TEACHER LIST
+$teachers = ['teacher1', 'teacher2', 'teacher3'];
+
+if (in_array($USER->username, $teachers)) {
     $isteacher = true;
     $isstudent = false;
 }
 
-// ✅ ADMIN OVERRIDE
+// ADMIN OVERRIDE
 if ($isadmin) {
     $isteacher = false;
     $isstudent = false;
@@ -30,18 +32,27 @@ if ($isadmin) {
 // Success message
 $success = false;
 
-// Form submit
+// FORM SUBMIT (FINAL FIX)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $record = new stdClass();
-    $record->name = required_param('name', PARAM_TEXT);
-    $record->email = required_param('email', PARAM_EMAIL);
-    $record->message = required_param('message', PARAM_TEXT);
-    $record->timecreated = time();
 
-    $DB->insert_record('local_feedback', $record);
+    // ✅ Moodle safe input
+    $record->name = optional_param('name', '', PARAM_TEXT);
+    $record->email = optional_param('email', '', PARAM_RAW);
+    $record->message = optional_param('message', '', PARAM_TEXT);
 
-    $success = true;
+    // ❌ Email empty hai to insert mat karo
+    if (empty($record->email)) {
+        echo "<p style='color:red;text-align:center;'>Email is required!</p>";
+    } else {
+
+        $record->timecreated = time();
+
+        $DB->insert_record('local_feedback', $record);
+
+        $success = true;
+    }
 }
 ?>
 
@@ -89,36 +100,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!-- ROLE BASED UI -->
 
 <?php if ($isstudent): ?>
-<h3 style="text-align:center;">👨‍🎓 Student Panel</h3>
+<h3 style="text-align:center;"> Student Panel</h3>
 <p style="text-align:center;">Submit your feedback below</p>
 <?php endif; ?>
 
 <?php if ($isteacher && !$isadmin): ?>
-<h3 style="text-align:center;">👨‍🏫 Teacher Panel</h3>
+<h3 style="text-align:center;"> Teacher Panel</h3>
 <p style="text-align:center;">View student feedback below</p>
 <?php endif; ?>
 
 <?php if ($isadmin): ?>
-<h3 style="text-align:center;">👑 Admin Panel</h3>
+<h3 style="text-align:center;"> Admin Panel</h3>
 <p style="text-align:center;">Full access to feedback system</p>
 <?php endif; ?>
 
-<!-- ✅ STUDENT FORM ONLY -->
+<!-- STUDENT FORM -->
 
 <?php if ($isstudent): ?>
 <div class="feedback-box">
 
-<h2>💬 Feedback Form</h2>
+<h2> Feedback Form</h2>
 
 <?php if ($success): ?>
-    <p class="success-msg">✅ Thank you for your feedback!</p>
+    <p class="success-msg">Thank you for your feedback!</p>
 <?php endif; ?>
 
-<form method="post">
+<form method="post" action="">
 
 <input type="text" name="name" placeholder="Your Name" required>
 
-<input type="email" name="email" placeholder="Your Email" required>
+
 
 <textarea name="message" placeholder="Write your feedback..." required></textarea>
 
@@ -129,11 +140,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 <?php endif; ?>
 
-<!-- 🔥 TEACHER + ADMIN VIEW -->
+<!-- TEACHER + ADMIN VIEW -->
 
 <?php if ($isteacher || $isadmin): ?>
 
-<h3 style="text-align:center;">📋 Feedback List</h3>
+<h3 style="text-align:center;"> Feedback List</h3>
 
 <?php
 $records = $DB->get_records('local_feedback');
@@ -142,7 +153,7 @@ if ($records) {
     echo "<table border='1' style='margin:auto;width:80%;text-align:center;'>
     <tr>
         <th>Name</th>
-        <th>Email</th>
+       
         <th>Message</th>
         <th>Time</th>
     </tr>";
@@ -150,7 +161,7 @@ if ($records) {
     foreach ($records as $r) {
         echo "<tr>
             <td>{$r->name}</td>
-            <td>{$r->email}</td>
+           
             <td>{$r->message}</td>
             <td>".date('d-m-Y H:i', $r->timecreated)."</td>
         </tr>";
