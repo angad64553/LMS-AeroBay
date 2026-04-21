@@ -6,22 +6,22 @@ defined('MOODLE_INTERNAL') || die();
  */
 function local_studentmanagement_extend_navigation_course($navigation, $course, $context) {
 
-    // Sirf course pages pe chale
+    // Site home pe show nahi kare
     if ($course->id == SITEID) {
         return;
     }
 
-    // Permission check (teacher/admin only)
-    if (!has_capability('moodle/course:viewparticipants', $context)) {
-        return;
-    }
+    // TEMP: capability hata do (debug ke liye)
+    // if (!has_capability('moodle/course:viewparticipants', $context)) {
+    //     return;
+    // }
 
-    // URL create
+    // URL
     $url = new moodle_url('/local/studentmanagement/index.php', [
         'id' => $course->id
     ]);
 
-    // Navigation me add karo
+    // Add in navigation
     $navigation->add(
         'Student Management',
         $url,

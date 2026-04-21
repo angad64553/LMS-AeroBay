@@ -174,3 +174,12 @@ function theme_moove_pluginfile($course, $cm, $context, $filearea, $args, $force
 
     send_file_not_found();
 }
+
+
+function theme_moove_page_init($page) {
+
+    //  sirf report page par JS load hogi
+    if (strpos($page->url->out(false), 'viewreport.php') !== false) {
+        $page->requires->js('/theme/moove/javascript/report.js');
+    }
+}

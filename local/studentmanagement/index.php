@@ -14,17 +14,22 @@ $PAGE->set_title('Student Management');
 
 echo $OUTPUT->header();
 
-// ✅ USERS FETCH WITH STATUS
+// USERS FETCH WITH STATUS
 $users = $DB->get_records_sql("
-    SELECT u.id, u.firstname, u.lastname, u.email, ue.status, ue.enrolid
+    SELECT u.id, u.firstname, u.lastname, u.email, ue.status
     FROM {user} u
     JOIN {user_enrolments} ue ON ue.userid = u.id
     JOIN {enrol} e ON e.id = ue.enrolid
+    JOIN {role_assignments} ra ON ra.userid = u.id
     WHERE e.courseid = ?
+    AND ra.roleid = 5
 ", [$courseid]);
 ?>
 
+<!-- HTML START -->
+
 <h3 style="margin-bottom:20px;">Student Management</h3>
+
 
 <form method="post" action="bulk_action.php?id=<?php echo $courseid; ?>">
 
@@ -47,18 +52,14 @@ $users = $DB->get_records_sql("
         <?php foreach ($users as $user) { ?>
             <tr>
 
-                <!-- Checkbox -->
                 <td>
                     <input type="checkbox" name="userid[]" value="<?php echo $user->id; ?>">
                 </td>
 
-                <!-- Name -->
                 <td><?php echo $user->firstname . ' ' . $user->lastname; ?></td>
 
-                <!-- Email -->
                 <td><?php echo $user->email; ?></td>
 
-                <!-- ✅ STATUS (Dynamic) -->
                 <td>
                     <?php if ($user->status == 0) { ?>
                         <span style="color:green; font-weight:bold;">Active</span>
@@ -67,10 +68,8 @@ $users = $DB->get_records_sql("
                     <?php } ?>
                 </td>
 
-                <!-- Actions -->
                 <td style="text-align:center;">
 
-                    <!-- ✅ Approve only if Pending -->
                     <?php if ($user->status != 0) { ?>
                         <a href="approve.php?id=<?php echo $user->id; ?>&courseid=<?php echo $courseid; ?>"
                            class="btn btn-success btn-sm"
@@ -79,7 +78,6 @@ $users = $DB->get_records_sql("
                         </a>
                     <?php } ?>
 
-                    <!-- Reject -->
                     <a href="reject.php?id=<?php echo $user->id; ?>&courseid=<?php echo $courseid; ?>"
                        class="btn btn-danger btn-sm">
                        Reject
@@ -90,14 +88,11 @@ $users = $DB->get_records_sql("
             </tr>
         <?php } ?>
     <?php } else { ?>
-
-        <!-- No data -->
         <tr>
             <td colspan="5" style="text-align:center; padding:20px;">
                 No students found
             </td>
         </tr>
-
     <?php } ?>
 
     </tbody>
@@ -105,7 +100,6 @@ $users = $DB->get_records_sql("
 
 <br>
 
-<!-- Bulk Buttons -->
 <button type="submit" name="action" value="approve" class="btn btn-success">
     Bulk Approve
 </button>
@@ -116,7 +110,6 @@ $users = $DB->get_records_sql("
 
 </form>
 
-<!-- Select All Script -->
 <script>
 document.getElementById('selectall').onclick = function() {
     let checkboxes = document.querySelectorAll('input[name="userid[]"]');
