@@ -1,7 +1,7 @@
 <?php
 require_once('../../config.php');
 require_once($CFG->libdir . '/formslib.php');
-require_once($CFG->dirroot . '/message/lib.php'); // 🔥 IMPORTANT
+require_once($CFG->dirroot . '/message/lib.php'); //  IMPORTANT
 
 require_login();
 
@@ -15,7 +15,7 @@ if (!has_capability('block/configurable_reports:managereports', $context) &&
     throw new moodle_exception('badpermissions');
 }
 
-// ✅ Get params safely
+//  Get params safely
 $userids = optional_param_array('userids', [], PARAM_INT);
 $courseid = required_param('courseid', PARAM_INT);
 
@@ -76,7 +76,7 @@ else if ($data = $form->get_data()) {
 
         if (!$touser) continue;
 
-        // 🔥 Notification object
+        //  Notification object
         $eventdata = new \core\message\message();
         $eventdata->component         = 'moodle';
         $eventdata->name              = 'instantmessage';
@@ -88,7 +88,7 @@ else if ($data = $form->get_data()) {
         $eventdata->fullmessagehtml   = $data->content['text'];
         $eventdata->smallmessage      = $data->subject;
 
-        // ✅ SEND NOTIFICATION
+        //  SEND NOTIFICATION
         message_send($eventdata);
     }
 

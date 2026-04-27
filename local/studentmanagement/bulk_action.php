@@ -13,7 +13,7 @@ if (!empty($userids)) {
 
     foreach ($userids as $userid) {
 
-        // 🔥 Get exact enrolment record
+        //  Get exact enrolment record
         $ue = $DB->get_record_sql("
             SELECT ue.*
             FROM {user_enrolments} ue
@@ -25,7 +25,7 @@ if (!empty($userids)) {
 
             if ($action == 'approve') {
 
-                // ✅ Activate user (NOT enrol_user)
+                //  Activate user (NOT enrol_user)
                 $start = time();
 
                 $enrol = $DB->get_record('enrol', ['id' => $ue->enrolid]);
@@ -41,7 +41,7 @@ if (!empty($userids)) {
 
             } elseif ($action == 'reject') {
 
-                // ✅ Proper unenrol using Moodle API
+                //  Proper unenrol using Moodle API
                 $enrol = $DB->get_record('enrol', ['id' => $ue->enrolid]);
                 $plugin = enrol_get_plugin($enrol->enrol);
 

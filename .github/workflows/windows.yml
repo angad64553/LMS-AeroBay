@@ -38,7 +38,7 @@ jobs:
           git diff --cached --exit-code
 
   PHPUnit:
-    if: false   # 🔥 YE LINE ADD KI (job disable)
+    if: false   #  YE LINE ADD KI (job disable)
     runs-on: ${{ matrix.os }}
 
     strategy:

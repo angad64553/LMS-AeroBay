@@ -6,11 +6,11 @@ require_login();
 
 global $DB, $USER, $PAGE;
 
-// ✅ params
+//  params
 $courseid = required_param('courseid', PARAM_INT);
 $userids = required_param('userids', PARAM_TEXT);
 
-// ✅ page setup (important)
+//  page setup (important)
 $PAGE->set_url('/blocks/configurable_reports/send_notification.php');
 
 // convert ids to array
@@ -26,21 +26,21 @@ foreach ($userids_array as $userid) {
 
     if (!$touser) continue;
 
-    // ✅ MESSAGE OBJECT
+    //  MESSAGE OBJECT
     $message = new \core\message\message();
     $message->component = 'moodle';
     $message->name = 'instantmessage';
     $message->userfrom = $USER;
     $message->userto = $touser;
 
-    // 🔥 MESSAGE CONTENT
+    //  MESSAGE CONTENT
     $message->subject = "Quiz Reminder";
     $message->fullmessage = "Hi " . $touser->firstname . ", please complete your pending quiz.";
     $message->fullmessageformat = FORMAT_PLAIN;
     $message->fullmessagehtml = "<p>Hi <b>" . $touser->firstname . "</b>, please complete your pending quiz.</p>";
     $message->smallmessage = "Quiz reminder";
 
-    $message->notification = 1; // 🔥 important
+    $message->notification = 1; / important
 
     // send
     $result = message_send($message);

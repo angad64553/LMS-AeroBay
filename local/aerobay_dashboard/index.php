@@ -10,7 +10,7 @@ $PAGE->set_heading('Aerobay Dashboard');
 
 echo $OUTPUT->header();
 
-// 🔥 Popup (Welcome message)
+// Popup (Welcome message)
 echo "<script>
     window.onload = function() {
         alert('Welcome to Aerobay Dashboard 🎉');

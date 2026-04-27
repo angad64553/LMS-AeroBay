@@ -38,7 +38,7 @@ jobs:
         run: npx grunt
 
   PHPUnit:
-    if: false   # 🔥 YE LINE ADD KI HAI (job disable)
+    if: false   # YE LINE ADD KI HAI (job disable)
     runs-on: ${{ matrix.os }}
     services:
       exttests:

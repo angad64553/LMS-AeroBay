@@ -32,27 +32,22 @@ if ($isadmin) {
 // Success message
 $success = false;
 
-// FORM SUBMIT (FINAL FIX)
+// FORM SUBMIT (FIXED)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $record = new stdClass();
 
-    // ✅ Moodle safe input
     $record->name = optional_param('name', '', PARAM_TEXT);
-    $record->email = optional_param('email', '', PARAM_RAW);
     $record->message = optional_param('message', '', PARAM_TEXT);
 
-    // ❌ Email empty hai to insert mat karo
-    if (empty($record->email)) {
-        echo "<p style='color:red;text-align:center;'>Email is required!</p>";
-    } else {
+    // Email DB me hai to empty set kar diya
+    $record->email = '';
 
-        $record->timecreated = time();
+    $record->timecreated = time();
 
-        $DB->insert_record('local_feedback', $record);
+    $DB->insert_record('local_feedback', $record);
 
-        $success = true;
-    }
+    $success = true;
 }
 ?>
 
@@ -129,8 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <input type="text" name="name" placeholder="Your Name" required>
 
-
-
 <textarea name="message" placeholder="Write your feedback..." required></textarea>
 
 <button type="submit">Submit</button>
@@ -153,7 +146,6 @@ if ($records) {
     echo "<table border='1' style='margin:auto;width:80%;text-align:center;'>
     <tr>
         <th>Name</th>
-       
         <th>Message</th>
         <th>Time</th>
     </tr>";
@@ -161,7 +153,6 @@ if ($records) {
     foreach ($records as $r) {
         echo "<tr>
             <td>{$r->name}</td>
-           
             <td>{$r->message}</td>
             <td>".date('d-m-Y H:i', $r->timecreated)."</td>
         </tr>";

@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     console.log("REPORT JS RUNNING");
 
-    //  extra safety (agar kisi reason se global load ho jaye)
+    
     if (!window.location.href.includes("viewreport.php")) return;
 
     let container = document.createElement("div");

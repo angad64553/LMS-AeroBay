@@ -17,7 +17,7 @@ function local_feedback_extend_navigation(global_navigation $nav) {
             new pix_icon('i/feedback', '')
         );
 
-        // 🔥 IMPORTANT: Add near top (navbar area)
+        //  IMPORTANT: Add near top (navbar area)
         $nav->add_node($node);
     }
 }
