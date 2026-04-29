@@ -1,25 +1,22 @@
 <?php
 require('../../config.php');
 
-$userid = required_param('id', PARAM_INT);
-$courseid = required_param('courseid', PARAM_INT);
+require_login();
 
-require_login($courseid);
+$userid = required_param('id', PARAM_INT);
 
 global $DB;
 
-// Get enrol instance for this course
-$enrol = $DB->get_record('enrol', ['courseid' => $courseid], '*', IGNORE_MULTIPLE);
+// Get user
+$user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
 
-if ($enrol) {
+// Suspend user (Reject)
+$user->suspended = 1;
 
-    // Get enrol plugin
-    $enrolplugin = enrol_get_plugin($enrol->enrol);
+$DB->update_record('user', $user);
 
-    if ($enrolplugin) {
-        // Proper Moodle API unenrol
-        $enrolplugin->unenrol_user($enrol, $userid);
-    }
-}
-
-redirect(new moodle_url('/local/studentmanagement/index.php', ['id' => $courseid]), 'User Rejected');
+// Redirect back to student management page
+redirect(
+    new moodle_url('/local/studentmanagement/index.php'),
+    'User Rejected Successfully'
+);

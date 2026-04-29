@@ -39,17 +39,29 @@
             <div class="divider border-left h-75 align-self-center mx-1"></div>
         {{/langmenu}}
 
-        <!-- 🔥 FEEDBACK BUTTON -->
+        <!--  FEEDBACK BUTTON -->
         <li class="nav-item d-flex align-items-center">
             <a class="nav-link feedback-btn" href="/moodle/local/feedback/index.php">
                 💬 Feedback
             </a>
         </li>
+        <li class="nav-item">
+    <a class="nav-link" href="/moodle/local/studentmanagement/schools.php">
+        My Schools
+    </a>
+</li>
 
-        <!-- 🔔 Bell icon -->
+   <li class="nav-item">
+    <a class="nav-link" href="{{config.wwwroot}}/local/studentmanagement/index.php?id=1">
+        Student Management
+    </a>
+</li>
+  
+
+        <!--  Bell icon -->
         {{{ output.navbar_plugin_output }}}
 
-        <!-- 👤 User menu -->
+        <!--  User menu -->
         <div class="d-flex align-items-stretch usermenu-container" data-region="usermenu">
             {{#usermenu}}
                 {{> core/user_menu }}

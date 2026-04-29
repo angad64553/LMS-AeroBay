@@ -1,46 +1,114 @@
 <?php
 require('../../config.php');
 
-$courseid = required_param('id', PARAM_INT);
+require_login();
 
-require_login($courseid);
+global $DB, $PAGE, $OUTPUT, $USER;
 
-global $DB, $PAGE, $OUTPUT;
+$context = context_system::instance();
+
+// Allow Admin + RM only
+if (!is_siteadmin() && !has_capability('local/studentmanagement:view', $context)) {
+    redirect('/', 'Access denied');
+}
 
 // Page setup
-$PAGE->set_url('/local/studentmanagement/index.php', ['id' => $courseid]);
+$PAGE->set_url('/local/studentmanagement/index.php');
 $PAGE->set_pagelayout('standard');
 $PAGE->set_title('Student Management');
 
 echo $OUTPUT->header();
 
-// USERS FETCH WITH STATUS
-$users = $DB->get_records_sql("
-    SELECT u.id, u.firstname, u.lastname, u.email, ue.status
-    FROM {user} u
-    JOIN {user_enrolments} ue ON ue.userid = u.id
-    JOIN {enrol} e ON e.id = ue.enrolid
-    JOIN {role_assignments} ra ON ra.userid = u.id
-    WHERE e.courseid = ?
-    AND ra.roleid = 5
-", [$courseid]);
-?>
+$schoolfilter = optional_param('schoolid', 0, PARAM_INT);
+$params = [];
+$isadmin = is_siteadmin();
 
-<!-- HTML START -->
+// ================= ADMIN =================
+if ($isadmin) {
+
+    $sql = "
+    SELECT u.id, u.firstname, u.lastname, u.email, u.suspended,
+           sm.schoolid, sm.gradeid,
+           s.name AS schoolname,
+           g.name AS gradename,
+           c.fullname AS coursename
+    FROM {user} u
+    JOIN {local_studentmanagement} sm ON sm.userid = u.id
+    JOIN {school} s ON s.id = sm.schoolid
+    JOIN {grade} g ON g.id = sm.gradeid
+    JOIN {school_course_map} scm 
+        ON scm.schoolid = sm.schoolid AND scm.gradeid = sm.gradeid
+    JOIN {course} c 
+        ON c.id = scm.courseid
+    WHERE u.deleted = 0
+    AND u.username NOT IN ('admin','guest')
+    ";
+
+    if ($schoolfilter) {
+        $sql .= " AND sm.schoolid = :schoolid";
+        $params['schoolid'] = $schoolfilter;
+    }
+
+    $students = $DB->get_records_sql($sql, $params);
+
+// ================= RM =================
+} else {
+
+    $sql = "
+    SELECT u.id, u.firstname, u.lastname, u.email, u.suspended,
+           sm.schoolid, sm.gradeid,
+           s.name AS schoolname,
+           g.name AS gradename,
+           c.fullname AS coursename
+    FROM {user} u
+    JOIN {local_studentmanagement} sm ON sm.userid = u.id
+    JOIN {school} s ON s.id = sm.schoolid
+    JOIN {grade} g ON g.id = sm.gradeid
+    JOIN {school_course_map} scm 
+        ON scm.schoolid = sm.schoolid AND scm.gradeid = sm.gradeid
+    JOIN {course} c 
+        ON c.id = scm.courseid
+    JOIN {rm_school_map} rm ON rm.schoolid = sm.schoolid
+    WHERE rm.rmid = :rmid
+    AND u.deleted = 0
+    AND u.username NOT IN ('admin','guest')
+    ";
+
+    $params['rmid'] = $USER->id;
+
+    if ($schoolfilter) {
+        $sql .= " AND sm.schoolid = :schoolid";
+        $params['schoolid'] = $schoolfilter;
+    }
+
+    $students = $DB->get_records_sql($sql, $params);
+}
+?>
 
 <h3 style="margin-bottom:20px;">Student Management</h3>
 
+<?php
+// School heading
+if ($schoolfilter) {
+    $school = $DB->get_record('school', ['id' => $schoolfilter]);
+    if ($school) {
+        echo "<h4>Students of " . s($school->name) . "</h4>";
+    }
+}
+?>
 
-<form method="post" action="bulk_action.php?id=<?php echo $courseid; ?>">
+<form method="post" action="bulk_action.php">
+<input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
 
 <table class="table table-bordered table-hover">
     <thead style="background:#2c3e50; color:white;">
         <tr>
-            <th>
-                <input type="checkbox" id="selectall">
-            </th>
+            <th><input type="checkbox" id="selectall"></th>
             <th>Name</th>
             <th>Email</th>
+            <th>School</th>
+            <th>Grade</th>
+            <th>Course</th> <!-- ✅ NEW -->
             <th>Status</th>
             <th style="text-align:center;">Action</th>
         </tr>
@@ -48,20 +116,31 @@ $users = $DB->get_records_sql("
 
     <tbody>
 
-    <?php if (!empty($users)) { ?>
-        <?php foreach ($users as $user) { ?>
+    <?php if (!empty($students)) { ?>
+        <?php foreach ($students as $user) { ?>
             <tr>
 
                 <td>
                     <input type="checkbox" name="userid[]" value="<?php echo $user->id; ?>">
                 </td>
 
-                <td><?php echo $user->firstname . ' ' . $user->lastname; ?></td>
+                <td><?php echo s($user->firstname . ' ' . $user->lastname); ?></td>
 
-                <td><?php echo $user->email; ?></td>
+                <td><?php echo s($user->email); ?></td>
 
                 <td>
-                    <?php if ($user->status == 0) { ?>
+                    <a href="index.php?schoolid=<?php echo $user->schoolid; ?>">
+                        <?php echo s($user->schoolname); ?>
+                    </a>
+                </td>
+
+                <td><?php echo s($user->gradename); ?></td>
+
+                <!-- ✅ COURSE -->
+                <td><?php echo s($user->coursename); ?></td>
+
+                <td>
+                    <?php if ($user->suspended == 0) { ?>
                         <span style="color:green; font-weight:bold;">Active</span>
                     <?php } else { ?>
                         <span style="color:orange; font-weight:bold;">Pending</span>
@@ -70,18 +149,32 @@ $users = $DB->get_records_sql("
 
                 <td style="text-align:center;">
 
-                    <?php if ($user->status != 0) { ?>
-                        <a href="approve.php?id=<?php echo $user->id; ?>&courseid=<?php echo $courseid; ?>"
+                    <?php if ($user->suspended != 0) { ?>
+
+                        <a href="approve.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
                            class="btn btn-success btn-sm"
                            style="margin-right:5px;">
                            Approve
                         </a>
-                    <?php } ?>
 
-                    <a href="reject.php?id=<?php echo $user->id; ?>&courseid=<?php echo $courseid; ?>"
-                       class="btn btn-danger btn-sm">
-                       Reject
-                    </a>
+                        <a href="reject.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
+                           class="btn btn-warning btn-sm">
+                           Reject
+                        </a>
+
+                    <?php } else { ?>
+
+                        <span style="color:green; font-weight:bold; margin-right:10px;">
+                            Approved
+                        </span>
+
+                        <a href="delete.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm('Are you sure to delete this user?')">
+                           Delete
+                        </a>
+
+                    <?php } ?>
 
                 </td>
 
@@ -89,7 +182,7 @@ $users = $DB->get_records_sql("
         <?php } ?>
     <?php } else { ?>
         <tr>
-            <td colspan="5" style="text-align:center; padding:20px;">
+            <td colspan="8" style="text-align:center; padding:20px;">
                 No students found
             </td>
         </tr>
