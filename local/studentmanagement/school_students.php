@@ -23,7 +23,7 @@ echo $OUTPUT->header();
 
 $isadmin = is_siteadmin();
 
-// 🔒 RM restriction check
+//  RM restriction check
 if (!$isadmin) {
 
     $exists = $DB->record_exists('rm_school_map', [
@@ -36,7 +36,7 @@ if (!$isadmin) {
     }
 }
 
-// 🎯 Fetch students of this school + course
+//  Fetch students of this school + course
 $students = $DB->get_records_sql("
     SELECT u.id, u.firstname, u.lastname, u.email, u.suspended,
            g.name AS gradename,
