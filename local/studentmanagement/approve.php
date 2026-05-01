@@ -1,54 +1,62 @@
 <?php
 require('../../config.php');
+require_login();
+
+global $DB, $CFG;
+
+require_once($CFG->dirroot.'/user/lib.php');
+require_once($CFG->libdir.'/enrollib.php');
 
 $userid = required_param('id', PARAM_INT);
 
-require_login();
+// USER
+$user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
 
-global $DB;
-
-//  FIX: multiple records handle karo
+// STUDENT MAP
 $students = $DB->get_records('local_studentmanagement', ['userid' => $userid]);
-
-if (!$students) {
-    print_error('Student not found');
-}
-
-//  first record le lo
 $student = reset($students);
 
 $schoolid = $student->schoolid;
 $gradeid  = $student->gradeid;
 
-// 2. Mapping
-$mapping = $DB->get_record('school_course_map', [
+// COURSE MAP
+$mapping = $DB->get_records('school_course_map', [
     'schoolid' => $schoolid,
     'gradeid'  => $gradeid
 ]);
-
-if (!$mapping) {
-    print_error('No course mapping found');
-}
-
+$mapping = reset($mapping);
 $courseid = $mapping->courseid;
 
-// 3. Enrol instance
+// ENROL INSTANCE
 $enrol = $DB->get_record('enrol', [
     'courseid' => $courseid,
     'enrol'    => 'manual'
-]);
+], '*', MUST_EXIST);
 
-if (!$enrol) {
-    print_error('Enrol instance not found');
-}
+// ================= PASSWORD FIX =================
 
-// 4. Check existing enrolment
+// ❗ SAME FUNCTION use करो (random_string OK है)
+$newpassword = random_string(8);
+
+echo "USERNAME: " . $user->username . "<br>";
+echo "PASSWORD: " . $newpassword;
+die;
+
+update_internal_user_password($user, $newpassword);
+
+
+
+// USER ACTIVATE (same old working style)
+$user->suspended = 0;
+$DB->update_record('user', $user);
+
+// ================= ENROL =================
+$enrolplugin = enrol_get_plugin('manual');
+
 $existing = $DB->get_record('user_enrolments', [
     'userid' => $userid,
     'enrolid' => $enrol->id
 ]);
-
-$enrolplugin = enrol_get_plugin('manual');
 
 if (!$existing) {
     $enrolplugin->enrol_user($enrol, $userid);
@@ -57,8 +65,25 @@ if (!$existing) {
     $DB->update_record('user_enrolments', $existing);
 }
 
-// 5. Unsuspend user
-$DB->set_field('user', 'suspended', 0, ['id' => $userid]);
+// ================= EMAIL (UNCHANGED WORKING) =================
+$subject = "Account Approved - LMS";
 
-// 6. Redirect
-redirect(new moodle_url('/local/studentmanagement/index.php'), 'Student Approved & Enrolled');
+$message = "
+Hello $user->firstname,
+
+Your account has been approved.
+
+Login URL: http://localhost/moodle/login/index.php
+Username: $user->username
+Password: $newpassword
+
+Please login and change your password.
+
+Regards,
+LMS Team
+";
+
+email_to_user($user, core_user::get_noreply_user(), $subject, $message);
+
+// ================= REDIRECT =================
+redirect(new moodle_url('/local/studentmanagement/index.php'), 'Student Approved & Email Sent');

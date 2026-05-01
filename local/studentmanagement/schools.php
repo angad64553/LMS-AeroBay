@@ -43,7 +43,10 @@ if ($isadmin) {
 ?>
 
 <h3 style="margin-bottom:20px;">My Schools</h3>
-
+<div style="margin-bottom: 15px;">
+    <a href="add_school.php" class="btn btn-primary">Add School</a>
+    <a href="export_csv.php" class="btn btn-success">Export CSV</a>
+</div>
 <table class="table table-bordered">
     <thead style="background:#2c3e50; color:white;">
         <tr>
@@ -62,6 +65,14 @@ if ($isadmin) {
                        class="btn btn-primary btn-sm">
                        View Students
                     </a>
+             <a href="add_school.php?id=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">
+    Edit
+</a>|
+    <a href="delete_school.php?id=<?php echo $school->id; ?>" class="btn btn-primary btn-sm">Delete</a> |
+    <a href="suspend_school.php?id=<?php echo $school->id; ?>" class="btn btn-primary btn-sm">
+        <?php echo $school->status ? 'Suspend' : 'Suspend'; ?>
+    </a> |
+    <a href="view_school.php?id=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">View</a>
                 </td>
             </tr>
         <?php } ?>

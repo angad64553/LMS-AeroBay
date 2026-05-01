@@ -77,6 +77,7 @@ class core_renderer extends \theme_boost\output\core_renderer {
 
         return $output;
     }
+    
 
     /**
      * Returns HTML attributes to use within the body tag. This includes an ID and classes.
@@ -436,3 +437,4 @@ class core_renderer extends \theme_boost\output\core_renderer {
         return $output;
     }
 }
+
