@@ -18,35 +18,33 @@ echo $OUTPUT->header();
 
 $isadmin = is_siteadmin();
 
-// RM ke school fetch
+// ================= ADMIN =================
 if ($isadmin) {
     $schools = $DB->get_records('school');
+
+// ================= RM =================
 } else {
-    $records = $DB->get_records('rm_school_map', ['rmid' => $USER->id]);
 
-    $schoolids = [];
-    foreach ($records as $r) {
-        $schoolids[] = $r->schoolid;
-    }
+    $sql = "
+        SELECT s.*, rm.status
+        FROM {school} s
+        JOIN {rm_school_map} rm ON rm.schoolid = s.id
+        WHERE rm.rmid = :rmid
+    ";
 
-    if (!empty($schoolids)) {
-        list($in_sql, $params) = $DB->get_in_or_equal($schoolids);
-
-        $schools = $DB->get_records_sql("
-            SELECT * FROM {school}
-            WHERE id $in_sql
-        ", $params);
-    } else {
-        $schools = [];
-    }
+    $schools = $DB->get_records_sql($sql, ['rmid' => $USER->id]);
 }
 ?>
 
 <h3 style="margin-bottom:20px;">My Schools</h3>
+
+<?php if ($isadmin) { ?>
 <div style="margin-bottom: 15px;">
     <a href="add_school.php" class="btn btn-primary">Add School</a>
     <a href="export_csv.php" class="btn btn-success">Export CSV</a>
 </div>
+<?php } ?>
+
 <table class="table table-bordered">
     <thead style="background:#2c3e50; color:white;">
         <tr>
@@ -59,21 +57,66 @@ if ($isadmin) {
     <?php if (!empty($schools)) { ?>
         <?php foreach ($schools as $s) { ?>
             <tr>
-                <td><?php echo $s->name; ?></td>
+
+                <td><?php echo s($s->name); ?></td>
+
                 <td>
-                    <a href="index.php?schoolid=<?php echo $s->id; ?>"
-                       class="btn btn-primary btn-sm">
-                       View Students
-                    </a>
-             <a href="add_school.php?id=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">
-    Edit
-</a>|
-    <a href="delete_school.php?id=<?php echo $school->id; ?>" class="btn btn-primary btn-sm">Delete</a> |
-    <a href="suspend_school.php?id=<?php echo $school->id; ?>" class="btn btn-primary btn-sm">
-        <?php echo $school->status ? 'Suspend' : 'Suspend'; ?>
-    </a> |
-    <a href="view_school.php?id=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">View</a>
+
+                    <?php if ($isadmin) { ?>
+
+                        <!-- ADMIN CONTROLS -->
+                        <a href="index.php?schoolid=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">View Students</a>
+
+                        <a href="add_school.php?id=<?php echo $s->id; ?>" class="btn btn-info btn-sm">Edit</a>
+
+                        <a href="delete_school.php?id=<?php echo $s->id; ?>" class="btn btn-danger btn-sm">Delete</a>
+
+                        <a href="suspend_school.php?id=<?php echo $s->id; ?>" class="btn btn-warning btn-sm">
+                            Suspend
+                        </a>
+
+                        <a href="view_school.php?id=<?php echo $s->id; ?>" class="btn btn-secondary btn-sm">View</a>
+
+                    <?php } else { ?>
+
+                        <!-- RM CONTROLS -->
+
+                        <?php if ($s->status == 0) { ?>
+
+                            <a href="accept.php?id=<?php echo $s->id; ?>" class="btn btn-success btn-sm">
+                                Accept
+                            </a>
+
+                            <a href="reject.php?id=<?php echo $s->id; ?>" class="btn btn-danger btn-sm">
+                                Reject
+                            </a>
+
+                        <?php } elseif ($s->status == 1) { ?>
+
+                            <span style="color:green; font-weight:bold; margin-right:10px;">
+                                Accepted
+                            </span>
+
+                            <a href="index.php?schoolid=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">
+                                View Students
+                            </a>
+
+                            <a href="view_school.php?id=<?php echo $s->id; ?>" class="btn btn-secondary btn-sm">
+                                View
+                            </a>
+
+                        <?php } elseif ($s->status == 2) { ?>
+
+                            <span style="color:red; font-weight:bold;">
+                                Rejected
+                            </span>
+
+                        <?php } ?>
+
+                    <?php } ?>
+
                 </td>
+
             </tr>
         <?php } ?>
     <?php } else { ?>
@@ -86,3 +129,4 @@ if ($isadmin) {
 
 <?php
 echo $OUTPUT->footer();
+?>

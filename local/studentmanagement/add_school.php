@@ -22,6 +22,37 @@ $PAGE->set_heading($editmode ? 'Edit School' : 'Add School');
 
 echo $OUTPUT->header();
 
+// GET GRADES
+$allgrades = $DB->get_records('grade');
+
+// GET RM USERS (role based bhi kar sakte ho future me)
+$rms = $DB->get_records_sql("
+    SELECT DISTINCT u.id, u.firstname, u.lastname
+    FROM {user} u
+    JOIN {role_assignments} ra ON ra.userid = u.id
+    JOIN {role} r ON r.id = ra.roleid
+    WHERE r.shortname = 'rm'
+    AND u.deleted = 0
+");
+// SELECTED GRADES
+$selectedgrades = [];
+$selectedrm = 0;
+
+if ($editmode) {
+
+    // grade mapping
+    $maps = $DB->get_records('school_grade_map', ['schoolid' => $id]);
+    foreach ($maps as $m) {
+        $selectedgrades[] = $m->gradeid;
+    }
+
+    // rm mapping
+    $rmmap = $DB->get_record('rm_school_map', ['schoolid' => $id]);
+    if ($rmmap) {
+        $selectedrm = $rmmap->rmid;
+    }
+}
+
 // FORM SUBMIT
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
@@ -34,80 +65,130 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $record->region = required_param('region', PARAM_TEXT);
     $record->status = 1;
 
+    $grades = optional_param_array('grades', [], PARAM_INT);
+    $rmid   = required_param('rmid', PARAM_INT);
+
     if ($id) {
-        // UPDATE
+        // UPDATE SCHOOL
         $record->id = $id;
         $DB->update_record('school', $record);
-        redirect(new moodle_url('/local/studentmanagement/schools.php'), 'School Updated Successfully');
+
+        // DELETE OLD GRADE MAP
+        $DB->delete_records('school_grade_map', ['schoolid' => $id]);
+
+        // DELETE OLD RM MAP
+        $DB->delete_records('rm_school_map', ['schoolid' => $id]);
+
+        $schoolid = $id;
+
     } else {
-        // INSERT
-        $DB->insert_record('school', $record);
-        redirect(new moodle_url('/local/studentmanagement/schools.php'), 'School Added Successfully');
+        // INSERT SCHOOL
+        $schoolid = $DB->insert_record('school', $record);
     }
+
+    // INSERT GRADE MAP
+    foreach ($grades as $gid) {
+        $map = new stdClass();
+        $map->schoolid = $schoolid;
+        $map->gradeid = $gid;
+        $DB->insert_record('school_grade_map', $map);
+    }
+
+    // INSERT RM MAP (Pending)
+    $rmmap = new stdClass();
+    $rmmap->schoolid = $schoolid;
+    $rmmap->rmid = $rmid;
+    $rmmap->status = 0; // pending
+    $DB->insert_record('rm_school_map', $rmmap);
+
+    redirect(new moodle_url('/local/studentmanagement/schools.php'),
+        $editmode ? 'School Updated Successfully' : 'School Added Successfully');
 }
 ?>
 
 <div class="container mt-4">
     <div class="card shadow-lg border-0 rounded-4">
-        <div class="card-header bg-primary text-white rounded-top-4">
-            <h4 class="mb-0">
-                <?php echo $editmode ? 'Edit School' : 'Add New School'; ?>
-            </h4>
+
+        <div class="card-header bg-primary text-white">
+            <h4><?php echo $editmode ? 'Edit School' : 'Add School'; ?></h4>
         </div>
 
-        <div class="card-body p-4">
+        <div class="card-body">
 
             <form method="post">
 
                 <div class="row">
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">School Name</label>
+                        <label>School Name</label>
                         <input type="text" name="schoolname" class="form-control"
-                            placeholder="Enter school name"
-                            value="<?php echo $school->name ?? ''; ?>" required>
+                        value="<?php echo $school->name ?? ''; ?>" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Principal Name</label>
+                        <label>Principal Name</label>
                         <input type="text" name="principalname" class="form-control"
-                            placeholder="Enter principal name"
-                            value="<?php echo $school->principalname ?? ''; ?>" required>
+                        value="<?php echo $school->principalname ?? ''; ?>" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Email</label>
+                        <label>Email</label>
                         <input type="email" name="email" class="form-control"
-                            placeholder="Enter email"
-                            value="<?php echo $school->email ?? ''; ?>" required>
+                        value="<?php echo $school->email ?? ''; ?>" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Contact Number</label>
+                        <label>Phone</label>
                         <input type="text" name="phone" class="form-control"
-                            placeholder="Enter phone number"
-                            value="<?php echo $school->phone ?? ''; ?>" required>
+                        value="<?php echo $school->phone ?? ''; ?>" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Region</label>
+                        <label>Region</label>
                         <input type="text" name="region" class="form-control"
-                            placeholder="Enter region"
-                            value="<?php echo $school->region ?? ''; ?>" required>
+                        value="<?php echo $school->region ?? ''; ?>" required>
                     </div>
 
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">Address</label>
-                        <textarea name="address" class="form-control" rows="3"
-                            placeholder="Enter address" required><?php echo $school->address ?? ''; ?></textarea>
+                        <label>Address</label>
+                        <textarea name="address" class="form-control" required><?php echo $school->address ?? ''; ?></textarea>
+                    </div>
+
+                    <!-- RM SELECT -->
+                    <div class="col-md-6 mb-3">
+                        <label>Select RM</label>
+                        <select name="rmid" class="form-control" required>
+                            <option value="">Select RM</option>
+                            <?php foreach ($rms as $rm) { ?>
+                                <option value="<?php echo $rm->id; ?>"
+                                    <?php echo ($selectedrm == $rm->id) ? 'selected' : ''; ?>>
+                                    <?php echo $rm->firstname . ' ' . $rm->lastname; ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
+
+                    <!-- GRADES -->
+                    <div class="col-md-12 mb-3">
+                        <label>Select Grades</label>
+                        <div style="border:1px solid #ccc; padding:10px;">
+                            <?php foreach ($allgrades as $g) { ?>
+                                <div>
+                                    <input type="checkbox" name="grades[]"
+                                    value="<?php echo $g->id; ?>"
+                                    <?php echo in_array($g->id, $selectedgrades) ? 'checked' : ''; ?>>
+                                    Grade <?php echo $g->name; ?>
+                                </div>
+                            <?php } ?>
+                        </div>
                     </div>
 
                 </div>
 
-                <div class="d-flex justify-content-between mt-4">
-                    <a href="schools.php" class="btn btn-secondary"> Back</a>
-                    <button type="submit" class="btn btn-success px-4">
-                        <?php echo $editmode ? 'Update School' : 'Save School'; ?>
+                <div class="d-flex justify-content-between mt-3">
+                    <a href="schools.php" class="btn btn-secondary">Back</a>
+                    <button type="submit" class="btn btn-success">
+                        <?php echo $editmode ? 'Update' : 'Save'; ?>
                     </button>
                 </div>
 
@@ -117,5 +198,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 </div>
 
-<?php
-echo $OUTPUT->footer();
+<?php echo $OUTPUT->footer(); ?>

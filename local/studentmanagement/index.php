@@ -1,6 +1,5 @@
 <?php
 require('../../config.php');
-
 require_login();
 
 global $DB, $PAGE, $OUTPUT, $USER;
@@ -36,9 +35,9 @@ if ($isadmin) {
     JOIN {local_studentmanagement} sm ON sm.userid = u.id
     JOIN {school} s ON s.id = sm.schoolid
     JOIN {grade} g ON g.id = sm.gradeid
-    JOIN {school_course_map} scm 
+    LEFT JOIN {school_course_map} scm 
         ON scm.schoolid = sm.schoolid AND scm.gradeid = sm.gradeid
-    JOIN {course} c 
+    LEFT JOIN {course} c 
         ON c.id = scm.courseid
     WHERE u.deleted = 0
     AND u.username NOT IN ('admin','guest')
@@ -64,9 +63,9 @@ if ($isadmin) {
     JOIN {local_studentmanagement} sm ON sm.userid = u.id
     JOIN {school} s ON s.id = sm.schoolid
     JOIN {grade} g ON g.id = sm.gradeid
-    JOIN {school_course_map} scm 
+    LEFT JOIN {school_course_map} scm 
         ON scm.schoolid = sm.schoolid AND scm.gradeid = sm.gradeid
-    JOIN {course} c 
+    LEFT JOIN {course} c 
         ON c.id = scm.courseid
     JOIN {rm_school_map} rm ON rm.schoolid = sm.schoolid
     WHERE rm.rmid = :rmid
@@ -87,16 +86,6 @@ if ($isadmin) {
 
 <h3 style="margin-bottom:20px;">Student Management</h3>
 
-<?php
-// School heading
-if ($schoolfilter) {
-    $school = $DB->get_record('school', ['id' => $schoolfilter]);
-    if ($school) {
-        echo "<h4>Students of " . s($school->name) . "</h4>";
-    }
-}
-?>
-
 <form method="post" action="bulk_action.php">
 <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
 
@@ -108,7 +97,7 @@ if ($schoolfilter) {
             <th>Email</th>
             <th>School</th>
             <th>Grade</th>
-            <th>Course</th> <!-- ✅ NEW -->
+            <th>Course</th>
             <th>Status</th>
             <th style="text-align:center;">Action</th>
         </tr>
@@ -128,16 +117,13 @@ if ($schoolfilter) {
 
                 <td><?php echo s($user->email); ?></td>
 
-                <td>
-                    <a href="index.php?schoolid=<?php echo $user->schoolid; ?>">
-                        <?php echo s($user->schoolname); ?>
-                    </a>
-                </td>
+                <td><?php echo s($user->schoolname); ?></td>
 
                 <td><?php echo s($user->gradename); ?></td>
 
-                <!-- ✅ COURSE -->
-                <td><?php echo s($user->coursename); ?></td>
+                <td>
+                    <?php echo $user->coursename ? s($user->coursename) : '<span style="color:red;">Not Assigned</span>'; ?>
+                </td>
 
                 <td>
                     <?php if ($user->suspended == 0) { ?>
@@ -149,11 +135,11 @@ if ($schoolfilter) {
 
                 <td style="text-align:center;">
 
-                    <?php if ($user->suspended != 0) { ?>
+                <?php if ($user->suspended != 0) { ?>
 
+                    <div style="display:flex; gap:6px; justify-content:center;">
                         <a href="approve.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
-                           class="btn btn-success btn-sm"
-                           style="margin-right:5px;">
+                           class="btn btn-success btn-sm">
                            Approve
                         </a>
 
@@ -161,20 +147,21 @@ if ($schoolfilter) {
                            class="btn btn-warning btn-sm">
                            Reject
                         </a>
+                    </div>
 
-                    <?php } else { ?>
+                <?php } else { ?>
 
-                        <span style="color:green; font-weight:bold; margin-right:10px;">
-                            Approved
-                        </span>
+                    <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                        
 
                         <a href="delete.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
                            class="btn btn-danger btn-sm"
                            onclick="return confirm('Are you sure to delete this user?')">
                            Delete
                         </a>
+                    </div>
 
-                    <?php } ?>
+                <?php } ?>
 
                 </td>
 
