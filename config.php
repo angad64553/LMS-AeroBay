@@ -4,22 +4,17 @@ unset($CFG);
 global $CFG;
 $CFG = new stdClass();
 
-$CFG->dbtype    = 'mariadb';
+$CFG->dbtype    = 'mysqli';
 $CFG->dblibrary = 'native';
 $CFG->dbhost    = 'localhost';
 $CFG->dbname    = 'moodle_db';
 $CFG->dbuser    = 'root';
-$CFG->dbpass    = '';
+$CFG->dbpass    = 'root';
 $CFG->prefix    = 'mdl_';
-$CFG->dboptions = array (
-  'dbpersist' => 0,
-  'dbport' => '3306',
-  'dbsocket' => '',
-  'dbcollation' => 'utf8mb4_general_ci',
-);
 
-$CFG->wwwroot   = 'http://localhost/moodle';
-$CFG->dataroot  = 'C:\\moodledata';
+$CFG->wwwroot   = 'http://localhost:8888/moodle';
+$CFG->dataroot  = '/Applications/MAMP/moodledata';
+
 $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
