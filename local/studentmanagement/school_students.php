@@ -49,6 +49,7 @@ $students = $DB->get_records_sql("
     LEFT JOIN {course} c ON c.id = scm.courseid
     WHERE sm.schoolid = ?
     AND u.deleted = 0
+    AND u.suspended <> 2
 ", [$schoolid]);
 
 ?>
@@ -79,6 +80,8 @@ $students = $DB->get_records_sql("
                 <td>
                     <?php if ($s->suspended == 0) { ?>
                         <span style="color:green;">Active</span>
+                    <?php } elseif ($s->suspended == 2) { ?>
+                        <span style="color:red;">Rejected</span>
                     <?php } else { ?>
                         <span style="color:orange;">Pending</span>
                     <?php } ?>

@@ -5,85 +5,86 @@ require_login();
 global $DB, $CFG;
 
 require_once($CFG->dirroot.'/user/lib.php');
+require_once($CFG->libdir.'/moodlelib.php');
 require_once($CFG->libdir.'/enrollib.php');
+require_once($CFG->dirroot.'/message/lib.php');
 
 $userid = required_param('id', PARAM_INT);
+require_sesskey();
 
-// USER
+// Fetch fresh user and make sure Moodle can find it during normal login.
+$user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
+$user->auth = 'manual';
+$user->mnethostid = $CFG->mnet_localhost_id;
+$user->confirmed = 1;
+$user->suspended = 0;
+
+// ================= PASSWORD GENERATE =================
+//  FIXED: single source of truth
+$newpassword = random_string(8);
+
+// ================= ACTIVATE USER =================
+user_update_user($user, false);
+
+//  UPDATE PASSWORD (NO OUTPUT BEFORE THIS)
+update_internal_user_password($user, $newpassword);
+
+// Reload the record after updating auth fields and password.
 $user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
 
-// STUDENT MAP
+// ================= GET STUDENT MAPPING =================
 $students = $DB->get_records('local_studentmanagement', ['userid' => $userid]);
 $student = reset($students);
+
+if (!$student) {
+    redirect(new moodle_url('/local/studentmanagement/index.php'), 'Student mapping not found');
+}
 
 $schoolid = $student->schoolid;
 $gradeid  = $student->gradeid;
 
-// COURSE MAP
+// ================= GET COURSE =================
 $mapping = $DB->get_records('school_course_map', [
     'schoolid' => $schoolid,
     'gradeid'  => $gradeid
 ]);
+
 $mapping = reset($mapping);
-$courseid = $mapping->courseid;
 
-// ENROL INSTANCE
-$enrol = $DB->get_record('enrol', [
-    'courseid' => $courseid,
-    'enrol'    => 'manual'
-], '*', MUST_EXIST);
-
-// ================= PASSWORD FIX =================
-
-// ❗ SAME FUNCTION use करो (random_string OK है)
-$newpassword = random_string(8);
-
-echo "USERNAME: " . $user->username . "<br>";
-echo "PASSWORD: " . $newpassword;
-die;
-
-update_internal_user_password($user, $newpassword);
-
-
-
-// USER ACTIVATE (same old working style)
-$user->suspended = 0;
-$DB->update_record('user', $user);
-
-// ================= ENROL =================
-$enrolplugin = enrol_get_plugin('manual');
-
-$existing = $DB->get_record('user_enrolments', [
-    'userid' => $userid,
-    'enrolid' => $enrol->id
-]);
-
-if (!$existing) {
-    $enrolplugin->enrol_user($enrol, $userid);
-} else {
-    $existing->status = 0;
-    $DB->update_record('user_enrolments', $existing);
+if (!$mapping) {
+    redirect(new moodle_url('/local/studentmanagement/index.php'), 'Course mapping not found');
 }
 
-// ================= EMAIL (UNCHANGED WORKING) =================
-$subject = "Account Approved - LMS";
+$courseid = $mapping->courseid;
 
-$message = "
-Hello $user->firstname,
+// ================= AUTO ENROL =================
+$enrol = enrol_get_plugin('manual');
+$instances = enrol_get_instances($courseid, true);
 
-Your account has been approved.
+if (!empty($instances)) {
+    $instance = reset($instances);
+    $enrol->enrol_user($instance, $userid, 5); // student role
+}
 
-Login URL: http://localhost/moodle/login/index.php
-Username: $user->username
-Password: $newpassword
+// ================= SEND EMAIL =================
+$message = new \core\message\message();
+$message->component         = 'local_studentmanagement';
+$message->name              = 'student_approved';
+$message->userfrom          = core_user::get_support_user();
+$message->userto            = $user;
+$message->subject           = 'Account Approved';
+$message->fullmessage       = "Your account has been approved.\nUsername: {$user->username}\nPassword: {$newpassword}";
+$message->fullmessageformat = FORMAT_PLAIN;
+$message->fullmessagehtml   = '';
+$message->smallmessage      = 'Account approved';
+$message->notification      = 1;
+$message->courseid          = SITEID;
 
-Please login and change your password.
-
-Regards,
-LMS Team
-";
-
-email_to_user($user, core_user::get_noreply_user(), $subject, $message);
+if (message_send($message)) {
+    $msg = "Student approved successfully.";
+} else {
+    $msg = "Student approved successfully, but the notification could not be sent.";
+}
 
 // ================= REDIRECT =================
-redirect(new moodle_url('/local/studentmanagement/index.php'), 'Student Approved & Email Sent');
+redirect(new moodle_url('/local/studentmanagement/index.php'), $msg);

@@ -45,17 +45,19 @@
                  Feedback
             </a>
         </li>
-        <li class="nav-item">
-    <a class="nav-link" href="/moodle/local/studentmanagement/schools.php">
-        My Schools
-    </a>
-</li>
+        {{# output.can_view_studentmanagement_links }}
+            <li class="nav-item">
+                <a class="nav-link" href="{{config.wwwroot}}/local/studentmanagement/schools.php">
+                    My Schools
+                </a>
+            </li>
 
-   <li class="nav-item">
-    <a class="nav-link" href="{{config.wwwroot}}/local/studentmanagement/index.php?id=1">
-        Student Management
-    </a>
-</li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{config.wwwroot}}/local/studentmanagement/index.php">
+                    Student Management
+                </a>
+            </li>
+        {{/ output.can_view_studentmanagement_links }}
   
 
         <!--  Bell icon -->

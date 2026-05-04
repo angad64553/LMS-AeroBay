@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user->email     = $email;
         $user->phone1    = $mobile;
         $user->auth      = 'manual';
+        $user->mnethostid = $CFG->mnet_localhost_id;
         $user->confirmed = 1;
         $user->suspended = 1;
 

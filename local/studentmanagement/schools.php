@@ -83,33 +83,31 @@ if ($isadmin) {
 
                         <?php if ($s->status == 0) { ?>
 
-                            <a href="accept.php?id=<?php echo $s->id; ?>" class="btn btn-success btn-sm">
+                            <a href="accept.php?id=<?php echo $s->id; ?>&sesskey=<?php echo sesskey(); ?>" class="btn btn-success btn-sm" onclick="return confirm('Are you sure to accept this school?')">
                                 Accept
                             </a>
 
-                            <a href="reject.php?id=<?php echo $s->id; ?>" class="btn btn-danger btn-sm">
+                            <a href="reject_school.php?id=<?php echo $s->id; ?>&sesskey=<?php echo sesskey(); ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure to reject this school?')">
                                 Reject
                             </a>
 
                         <?php } elseif ($s->status == 1) { ?>
 
-                            <span style="color:green; font-weight:bold; margin-right:10px;">
-                                Accepted
-                            </span>
+                            <div style="display:flex; gap:6px; align-items:center; justify-content:center;">
+                                <span style="color:green; font-weight:bold;">Accepted</span>
 
-                            <a href="index.php?schoolid=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">
-                                View Students
-                            </a>
+                                <a href="index.php?schoolid=<?php echo $s->id; ?>" class="btn btn-primary btn-sm">
+                                    View Students
+                                </a>
 
-                            <a href="view_school.php?id=<?php echo $s->id; ?>" class="btn btn-secondary btn-sm">
-                                View
-                            </a>
+                                <a href="view_school.php?id=<?php echo $s->id; ?>" class="btn btn-secondary btn-sm">
+                                    View
+                                </a>
+                            </div>
 
                         <?php } elseif ($s->status == 2) { ?>
 
-                            <span style="color:red; font-weight:bold;">
-                                Rejected
-                            </span>
+                            <span style="color:red; font-weight:bold;">Rejected</span>
 
                         <?php } ?>
 

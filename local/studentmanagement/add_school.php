@@ -2,7 +2,7 @@
 require('../../config.php');
 require_login();
 
-global $DB, $PAGE, $OUTPUT;
+global $DB, $PAGE, $OUTPUT, $USER;
 
 $id = optional_param('id', 0, PARAM_INT);
 $editmode = false;
@@ -100,6 +100,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $rmmap->rmid = $rmid;
     $rmmap->status = 0; // pending
     $DB->insert_record('rm_school_map', $rmmap);
+
+    // SEND NOTIFICATION TO RM
+    require_once($CFG->dirroot . '/message/lib.php');
+
+    $message = new \core\message\message();
+
+    $message->component = 'local_studentmanagement';
+    $message->name = 'school_assignment';
+    $message->userfrom = $USER;
+    $message->userto = $rmid;
+
+    $message->subject = 'New School Assigned';
+    $message->fullmessage = 'You have been assigned a new school. Please login and accept or reject.';
+    $message->fullmessageformat = FORMAT_PLAIN;
+    $message->fullmessagehtml = '<p>You have been assigned a new school.</p><p>Please login and accept or reject.</p>';
+    $message->smallmessage = 'New school assigned';
+
+    $message->contexturl = $CFG->wwwroot . '/local/studentmanagement/schools.php';
+    $message->contexturlname = 'View Schools';
+
+    $message->notification = 1;
+
+    message_send($message);
 
     redirect(new moodle_url('/local/studentmanagement/schools.php'),
         $editmode ? 'School Updated Successfully' : 'School Added Successfully');

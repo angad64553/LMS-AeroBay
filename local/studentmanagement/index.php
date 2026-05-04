@@ -40,6 +40,7 @@ if ($isadmin) {
     LEFT JOIN {course} c 
         ON c.id = scm.courseid
     WHERE u.deleted = 0
+    AND u.suspended <> 2
     AND u.username NOT IN ('admin','guest')
     ";
 
@@ -69,7 +70,9 @@ if ($isadmin) {
         ON c.id = scm.courseid
     JOIN {rm_school_map} rm ON rm.schoolid = sm.schoolid
     WHERE rm.rmid = :rmid
+    AND rm.status = 1
     AND u.deleted = 0
+    AND u.suspended <> 2
     AND u.username NOT IN ('admin','guest')
     ";
 
@@ -128,6 +131,8 @@ if ($isadmin) {
                 <td>
                     <?php if ($user->suspended == 0) { ?>
                         <span style="color:green; font-weight:bold;">Active</span>
+                    <?php } elseif ($user->suspended == 2) { ?>
+                        <span style="color:red; font-weight:bold;">Rejected</span>
                     <?php } else { ?>
                         <span style="color:orange; font-weight:bold;">Pending</span>
                     <?php } ?>
@@ -135,7 +140,7 @@ if ($isadmin) {
 
                 <td style="text-align:center;">
 
-                <?php if ($user->suspended != 0) { ?>
+                <?php if ($user->suspended == 1) { ?>
 
                     <div style="display:flex; gap:6px; justify-content:center;">
                         <a href="approve.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"

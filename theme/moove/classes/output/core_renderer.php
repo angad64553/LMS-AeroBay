@@ -164,6 +164,21 @@ class core_renderer extends \theme_boost\output\core_renderer {
     }
 
     /**
+     * Whether the current user can access the student management navigation links.
+     *
+     * @return bool
+     */
+    public function can_view_studentmanagement_links() {
+        if (!isloggedin() || isguestuser()) {
+            return false;
+        }
+
+        $context = \context_system::instance();
+
+        return is_siteadmin() || has_capability('local/studentmanagement:view', $context);
+    }
+
+    /**
      * Get the main logo URL.
      *
      * @return string
@@ -437,4 +452,3 @@ class core_renderer extends \theme_boost\output\core_renderer {
         return $output;
     }
 }
-

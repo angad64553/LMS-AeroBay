@@ -3,10 +3,13 @@ require('../../config.php');
 
 require_login();
 
+global $DB, $CFG;
+
+require_once($CFG->dirroot.'/user/lib.php');
+
 $action = required_param('action', PARAM_ALPHA);
 $userids = optional_param_array('userid', [], PARAM_INT);
-
-global $DB;
+require_sesskey();
 
 if (!empty($userids)) {
 
@@ -24,8 +27,10 @@ if (!empty($userids)) {
 
             } elseif ($action == 'reject') {
 
-                // Suspend user
-                $user->suspended = 1;
+                // Remove custom student mapping and delete the Moodle user safely.
+                $DB->delete_records('local_studentmanagement', ['userid' => $userid]);
+                user_delete_user($user);
+                continue;
             }
 
             $DB->update_record('user', $user);
