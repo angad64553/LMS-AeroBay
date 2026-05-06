@@ -179,6 +179,62 @@ class core_renderer extends \theme_boost\output\core_renderer {
     }
 
     /**
+     * Whether the current user can access the trainer management page.
+     *
+     * @return bool
+     */
+    public function can_view_trainer_management_link() {
+        global $DB, $USER;
+
+        if (!isloggedin() || isguestuser()) {
+            return false;
+        }
+
+        $context = \context_system::instance();
+
+        if (is_siteadmin() || has_capability('local/studentmanagement:view', $context)) {
+            return true;
+        }
+
+        return $DB->record_exists_sql("
+            SELECT 1
+              FROM {role_assignments} ra
+              JOIN {role} r ON r.id = ra.roleid
+             WHERE ra.userid = :userid
+               AND ra.contextid = :contextid
+               AND r.shortname = 'trainer'
+        ", ['userid' => $USER->id, 'contextid' => $context->id]);
+    }
+
+    /**
+     * Whether the current trainer can access their own student list.
+     *
+     * @return bool
+     */
+    public function can_view_trainer_studentmanagement_link() {
+        global $DB, $USER;
+
+        if (!isloggedin() || isguestuser()) {
+            return false;
+        }
+
+        $context = \context_system::instance();
+
+        if (is_siteadmin() || has_capability('local/studentmanagement:view', $context)) {
+            return false;
+        }
+
+        return $DB->record_exists_sql("
+            SELECT 1
+              FROM {role_assignments} ra
+              JOIN {role} r ON r.id = ra.roleid
+             WHERE ra.userid = :userid
+               AND ra.contextid = :contextid
+               AND r.shortname = 'trainer'
+        ", ['userid' => $USER->id, 'contextid' => $context->id]);
+    }
+
+    /**
      * Get the main logo URL.
      *
      * @return string

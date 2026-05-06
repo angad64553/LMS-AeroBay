@@ -42,6 +42,7 @@ if ($isadmin) {
 <div style="margin-bottom: 15px;">
     <a href="add_school.php" class="btn btn-primary">Add School</a>
     <a href="export_csv.php" class="btn btn-success">Export CSV</a>
+    <a href="grades.php" class="btn btn-info">Grades</a>
 </div>
 <?php } ?>
 

@@ -4,6 +4,12 @@ require_login();
 
 global $DB, $CFG;
 
+$context = context_system::instance();
+
+if (!is_siteadmin() && !has_capability('local/studentmanagement:view', $context)) {
+    redirect('/', 'Access denied');
+}
+
 require_once($CFG->dirroot.'/user/lib.php');
 require_once($CFG->libdir.'/moodlelib.php');
 require_once($CFG->libdir.'/enrollib.php');

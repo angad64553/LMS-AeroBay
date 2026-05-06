@@ -45,6 +45,13 @@
                  Feedback
             </a>
         </li>
+        {{# output.can_view_trainer_management_link }}
+            <li class="nav-item d-flex align-items-center">
+                <a class="nav-link" href="{{config.wwwroot}}/local/studentmanagement/trainers.php">
+                    Trainer Management
+                </a>
+            </li>
+        {{/ output.can_view_trainer_management_link }}
         {{# output.can_view_studentmanagement_links }}
             <li class="nav-item">
                 <a class="nav-link" href="{{config.wwwroot}}/local/studentmanagement/schools.php">
@@ -58,6 +65,13 @@
                 </a>
             </li>
         {{/ output.can_view_studentmanagement_links }}
+        {{# output.can_view_trainer_studentmanagement_link }}
+            <li class="nav-item">
+                <a class="nav-link" href="{{config.wwwroot}}/local/studentmanagement/index.php">
+                    Student Management
+                </a>
+            </li>
+        {{/ output.can_view_trainer_studentmanagement_link }}
   
 
         <!--  Bell icon -->

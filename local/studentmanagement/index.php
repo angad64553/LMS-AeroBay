@@ -5,9 +5,17 @@ require_login();
 global $DB, $PAGE, $OUTPUT, $USER;
 
 $context = context_system::instance();
+$istrainer = $DB->record_exists_sql("
+    SELECT 1
+      FROM {role_assignments} ra
+      JOIN {role} r ON r.id = ra.roleid
+     WHERE ra.userid = :userid
+       AND ra.contextid = :contextid
+       AND r.shortname = 'trainer'
+", ['userid' => $USER->id, 'contextid' => $context->id]);
 
-// Allow Admin + RM only
-if (!is_siteadmin() && !has_capability('local/studentmanagement:view', $context)) {
+// Allow Admin, RM and trainers.
+if (!is_siteadmin() && !has_capability('local/studentmanagement:view', $context) && !$istrainer) {
     redirect('/', 'Access denied');
 }
 
@@ -21,6 +29,7 @@ echo $OUTPUT->header();
 $schoolfilter = optional_param('schoolid', 0, PARAM_INT);
 $params = [];
 $isadmin = is_siteadmin();
+$canmanage = $isadmin || has_capability('local/studentmanagement:view', $context);
 
 // ================= ADMIN =================
 if ($isadmin) {
@@ -52,7 +61,7 @@ if ($isadmin) {
     $students = $DB->get_records_sql($sql, $params);
 
 // ================= RM =================
-} else {
+} else if ($canmanage) {
 
     $sql = "
     SELECT u.id, u.firstname, u.lastname, u.email, u.suspended,
@@ -84,6 +93,39 @@ if ($isadmin) {
     }
 
     $students = $DB->get_records_sql($sql, $params);
+
+// ================= TRAINER =================
+} else {
+
+    $sql = "
+    SELECT u.id, u.firstname, u.lastname, u.email, u.suspended,
+           sm.schoolid, sm.gradeid,
+           s.name AS schoolname,
+           g.name AS gradename,
+           c.fullname AS coursename
+    FROM {user} u
+    JOIN {local_studentmanagement} sm ON sm.userid = u.id
+    JOIN {school} s ON s.id = sm.schoolid
+    JOIN {grade} g ON g.id = sm.gradeid
+    JOIN {school_course_map} scm
+        ON scm.schoolid = sm.schoolid AND scm.gradeid = sm.gradeid
+    JOIN {course} c
+        ON c.id = scm.courseid
+    JOIN {trainer_school_map} tsm
+        ON tsm.schoolid = sm.schoolid AND tsm.trainerid = :trainerid
+    WHERE u.deleted = 0
+    AND u.suspended <> 2
+    AND u.username NOT IN ('admin','guest')
+    ";
+
+    $params['trainerid'] = $USER->id;
+
+    if ($schoolfilter) {
+        $sql .= " AND sm.schoolid = :schoolid";
+        $params['schoolid'] = $schoolfilter;
+    }
+
+    $students = $DB->get_records_sql($sql, $params);
 }
 ?>
 
@@ -95,14 +137,18 @@ if ($isadmin) {
 <table class="table table-bordered table-hover">
     <thead style="background:#2c3e50; color:white;">
         <tr>
-            <th><input type="checkbox" id="selectall"></th>
+            <?php if ($canmanage) { ?>
+                <th><input type="checkbox" id="selectall"></th>
+            <?php } ?>
             <th>Name</th>
             <th>Email</th>
             <th>School</th>
             <th>Grade</th>
             <th>Course</th>
             <th>Status</th>
-            <th style="text-align:center;">Action</th>
+            <?php if ($canmanage) { ?>
+                <th style="text-align:center;">Action</th>
+            <?php } ?>
         </tr>
     </thead>
 
@@ -112,9 +158,11 @@ if ($isadmin) {
         <?php foreach ($students as $user) { ?>
             <tr>
 
-                <td>
-                    <input type="checkbox" name="userid[]" value="<?php echo $user->id; ?>">
-                </td>
+                <?php if ($canmanage) { ?>
+                    <td>
+                        <input type="checkbox" name="userid[]" value="<?php echo $user->id; ?>">
+                    </td>
+                <?php } ?>
 
                 <td><?php echo s($user->firstname . ' ' . $user->lastname); ?></td>
 
@@ -138,43 +186,44 @@ if ($isadmin) {
                     <?php } ?>
                 </td>
 
-                <td style="text-align:center;">
+                <?php if ($canmanage) { ?>
+                    <td style="text-align:center;">
 
-                <?php if ($user->suspended == 1) { ?>
+                    <?php if ($user->suspended == 1) { ?>
 
-                    <div style="display:flex; gap:6px; justify-content:center;">
-                        <a href="approve.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
-                           class="btn btn-success btn-sm">
-                           Approve
-                        </a>
+                        <div style="display:flex; gap:6px; justify-content:center;">
+                            <a href="approve.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
+                            class="btn btn-success btn-sm">
+                            Approve
+                            </a>
 
-                        <a href="reject.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
-                           class="btn btn-warning btn-sm">
-                           Reject
-                        </a>
-                    </div>
+                            <a href="reject.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
+                            class="btn btn-warning btn-sm">
+                            Reject
+                            </a>
+                        </div>
 
-                <?php } else { ?>
+                    <?php } else { ?>
 
-                    <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
-                        
+                        <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
 
-                        <a href="delete.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
-                           class="btn btn-danger btn-sm"
-                           onclick="return confirm('Are you sure to delete this user?')">
-                           Delete
-                        </a>
-                    </div>
+                            <a href="delete.php?id=<?php echo $user->id; ?>&sesskey=<?php echo sesskey(); ?>"
+                            class="btn btn-danger btn-sm"
+                            onclick="return confirm('Are you sure to delete this user?')">
+                            Delete
+                            </a>
+                        </div>
 
+                    <?php } ?>
+
+                    </td>
                 <?php } ?>
-
-                </td>
 
             </tr>
         <?php } ?>
     <?php } else { ?>
         <tr>
-            <td colspan="8" style="text-align:center; padding:20px;">
+            <td colspan="<?php echo $canmanage ? 8 : 6; ?>" style="text-align:center; padding:20px;">
                 No students found
             </td>
         </tr>
@@ -185,22 +234,26 @@ if ($isadmin) {
 
 <br>
 
-<button type="submit" name="action" value="approve" class="btn btn-success">
-    Bulk Approve
-</button>
+<?php if ($canmanage) { ?>
+    <button type="submit" name="action" value="approve" class="btn btn-success">
+        Bulk Approve
+    </button>
 
-<button type="submit" name="action" value="reject" class="btn btn-danger">
-    Bulk Reject
-</button>
+    <button type="submit" name="action" value="reject" class="btn btn-danger">
+        Bulk Reject
+    </button>
+<?php } ?>
 
 </form>
 
-<script>
-document.getElementById('selectall').onclick = function() {
-    let checkboxes = document.querySelectorAll('input[name="userid[]"]');
-    checkboxes.forEach(cb => cb.checked = this.checked);
-};
-</script>
+<?php if ($canmanage) { ?>
+    <script>
+    document.getElementById('selectall').onclick = function() {
+        let checkboxes = document.querySelectorAll('input[name="userid[]"]');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    };
+    </script>
+<?php } ?>
 
 <?php
 echo $OUTPUT->footer();

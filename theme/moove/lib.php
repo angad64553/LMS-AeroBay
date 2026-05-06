@@ -182,4 +182,8 @@ function theme_moove_page_init($page) {
     if (strpos($page->url->out(false), 'viewreport.php') !== false) {
         $page->requires->js('/theme/moove/javascript/report.js');
     }
+
+    if (strpos($page->url->out(false), '/mod/book/edit.php') !== false) {
+        $page->requires->js('/theme/moove/javascript/editor-image-resize.js');
+    }
 }

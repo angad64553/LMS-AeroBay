@@ -7,6 +7,12 @@ $userid = required_param('id', PARAM_INT);
 
 global $DB;
 
+$context = context_system::instance();
+
+if (!is_siteadmin() && !has_capability('local/studentmanagement:view', $context)) {
+    redirect('/', 'Access denied');
+}
+
 // ❗ user exist check
 $user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
 
